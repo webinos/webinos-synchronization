@@ -1,0 +1,28 @@
+{ "name": "webinos-synchronization",
+  "version": "0.8.0",
+  "description": "Webinos synchronization specification implementation",
+  "main": "./index.js",
+  "author": "Habib Virji  <habib.virji@samsung.com>",
+  "homepage": "http://www.webinos.org",
+  "bugs": "http://jira.webinos.org",
+  "repositories":
+   { "type": "git",
+     "url": "git://github.com/webinos/webinos-synchronization.git"
+   },
+  "directories": {
+    "lib": "./lib",
+    "test":"./test"
+  },
+  "dependencies":{
+    "xml2js": "0.x.x"
+  },
+  "devDependencies": {
+    "jasmine-node": "1.x.x"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "jasmine-node ./test/jasmine"
+  }
+}
