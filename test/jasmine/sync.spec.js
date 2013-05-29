@@ -143,7 +143,7 @@ describe("Sync manager updates during PZP enrollment at PZH, also covers update 
     });
     it ("PZP applies changes", function() {
         expect(pzp_userPref.ports.provider).toEqual(80); // To determine a single value is too updated by Sync
-        pzpObject = pzp_sync.applyObjectHash(compItems);
+        pzpObject = pzp_sync.applyObjectContents(compItems);
         expect(pzpObject).not.toBeNull();
         expect(typeof pzpObject).toEqual("object");
         expect(pzpObject.crl).not.toBeNull();
@@ -163,7 +163,7 @@ describe("Sync manager updates during PZP enrollment at PZH, also covers update 
 
 describe("PZP updates sync with PZH", function() {
     it("PZP updates policy changes to the PZH" , function() {
-        var diff = pzp_sync.compareObjectHash(pzh_sync.getObjectHash());// PZP find differences based on last sync message.
+        var diff = pzp_sync.compareObjectHash(pzh_sync.getObjectContents());// PZP find differences based on last sync message.
         expect(pzhSyncItems.policy).toEqual("");
         var pzhObject = pzh_sync.applyObjectHash(diff);
         expect(pzhObject.policy).toEqual(pzpObject.policy);

@@ -17,14 +17,13 @@
  * Author: Habib Virji (habib.virji@samsung.com)
  *******************************************************************************/
 
-var Sync = function (jsonObject) {
+var Sync = function () {
     "use strict";
-    var SyncObj = this;
-    SyncObj.lastSync = {};
+    var SyncObject = this;
     /**
      * Get object hash of all elements we want to synchronize
      */
-    this.getObjectHash = function () {
+    this.getObjectHash = function (jsonObject) {
         var myKey, diff = {};
         for (myKey in jsonObject) {
             if (jsonObject.hasOwnProperty (myKey)) { // purposefully ignoring child elts
@@ -37,21 +36,49 @@ var Sync = function (jsonObject) {
     /**
      * Compare hash of the elements.
      */
-    this.compareObjectHash = function (remoteJsonObject) {
-        var diff = {};
-        if (!remoteJsonObject) {
-            remoteJsonObject = SyncObj.lastSync;
-        }
-        if (remoteJsonObject) {
-            var ownJsonObject = SyncObj.getObjectHash();
-            Object.keys(remoteJsonObject).forEach(function(key) {
-                if (ownJsonObject[key] !== remoteJsonObject[key]){ // Object exists but hash differs
-                    diff[key] = jsonObject[key];
+    this.compareObjectHash = function (jsonObject, remoteJsonObject) {
+        var diff = [], ownJsonObject;
+        if(jsonObject) {
+            var contentsPzp = {};
+            ownJsonObject = SyncObject.getObjectHash(jsonObject);
+            // find Object this PZP has that PZH does not have...
+            Object.keys(ownJsonObject).forEach(function(key) {
+                if (!remoteJsonObject[key]){ // Object is not present at the PZH
+                    contentsPzp[key] = jsonObject[key];
                 }
             });
-            SyncObj.lastSync = remoteJsonObject;
+            if (Object.keys(contentsPzp).length > 0) diff.push(contentsPzp);
         }
+        if (remoteJsonObject) {
+            Object.keys(remoteJsonObject).forEach(function(key) {
+                // Object exists but hash differs
+                // Object does not exist, ask remote entity to send updated object
+                if (ownJsonObject[key] !== remoteJsonObject[key] || !ownJsonObject[key]){
+                    diff.push(key);
+                }
+            });
+        }
+
         return diff;
+    };
+
+    this.sendObjectContents = function(jsonObject, receivedDiff) {
+        var list= {};
+        receivedDiff.forEach(function(name){
+            if (typeof name === "string"){
+                list[name] = jsonObject[name];
+            }
+        });
+        receivedDiff.forEach(function(name){
+            if (typeof name === "object"){
+                for (var key in name) {
+                    if (name.hasOwnProperty(key)){
+                        jsonObject[key] = name[key];
+                    }
+                }
+            }
+        });
+        return list;
     };
 
     function findDiffApply(remoteJson, localJson) {
@@ -84,35 +111,34 @@ var Sync = function (jsonObject) {
     }
 
 
+
     /**
-     * Here remoteJsonObject is not hash but actual data contents.
+     * Here remoteJsonObject is actual data contents.
      */
-    this.applyObjectHash = function(remoteJsonObject) {
-        var myKey, diff = {}, updatedData = {};
-        if (typeof remoteJsonObject !== "object") {
+    this.applyObjectContents = function(localJson, remoteJsonObject) {
+        if (typeof remoteJsonObject !== "object" && typeof localJson !== "object") {
             return; // remoteJsonObject is not of type of object, return empty
         }
         var remote = Object.keys(remoteJsonObject)
-        var local = Object.keys(jsonObject);
+        var local = Object.keys(localJson);
         remote.forEach(function(key){
-            if(local.indexOf(key) === -1) { // This is new element add element
-               jsonObject[key] = remoteJsonObject[key]
+            if(local.indexOf(key) === -1) { // This is new element add element, locally it does not exist
+                localJson[key] = remoteJsonObject[key];
             } else { // Existing at both PZH and PZP
-                if(typeof remoteJsonObject[key] === "string" && typeof jsonObject[key] === "string" &&
-                remoteJsonObject[key] !== jsonObject[key]) { // Element are string
-                    jsonObject[key] = remoteJsonObject[key];
+                if(typeof remoteJsonObject[key] === "string" && typeof localJson[key] === "string" &&
+                remoteJsonObject[key] !== localJson[key]) { // Element are string
+                    localJson[key] = remoteJsonObject[key];
                 } else if (typeof remoteJsonObject[key] === "object"){
-                    jsonObject[key] = findDiffApply(remoteJsonObject[key], jsonObject[key]);
+                    localJson[key] = findDiffApply(remoteJsonObject[key], localJson[key]);
                 }
             }
         });
-        return jsonObject;
     };
 };
 var ParseXML = function(xmlData, callback) {
     var xml2js = require('xml2js');
     var xmlParser = new xml2js.Parser(xml2js.defaults["0.2"]);
-    var result = xmlParser.parseString(xmlData, function(err, jsonData) {
+    xmlParser.parseString(xmlData, function(err, jsonData) {
         if(!err) {
             callback(jsonData);
         }
