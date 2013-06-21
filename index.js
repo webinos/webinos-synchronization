@@ -1,4 +1,4 @@
-/*******************************************************************************
+    /*******************************************************************************
  *  Code contributed to the webinos project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,6 @@ var Sync = function () {
                 }
             });
         }
-
         return diff;
     };
 
@@ -67,10 +66,7 @@ var Sync = function () {
         receivedDiff.forEach(function(name){
             if (typeof name === "string"){
                 list[name] = jsonObject[name];
-            }
-        });
-        receivedDiff.forEach(function(name){
-            if (typeof name === "object"){
+            } else if (typeof name === "object"){
                 for (var key in name) {
                     if (name.hasOwnProperty(key)){
                         jsonObject[key] = name[key];
@@ -119,7 +115,7 @@ var Sync = function () {
         if (typeof remoteJsonObject !== "object" && typeof localJson !== "object") {
             return; // remoteJsonObject is not of type of object, return empty
         }
-        var remote = Object.keys(remoteJsonObject)
+        var remote = Object.keys(remoteJsonObject);
         var local = Object.keys(localJson);
         remote.forEach(function(key){
             if(local.indexOf(key) === -1) { // This is new element add element, locally it does not exist
