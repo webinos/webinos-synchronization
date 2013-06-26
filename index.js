@@ -44,10 +44,9 @@ var Sync = function () {
             // find Object this PZP has that PZH does not have...
             Object.keys(ownJsonObject).forEach(function(key) {
                 if (!remoteJsonObject[key]){ // Object is not present at the PZH
-                    contentsPzp[key] = jsonObject[key];
+                    contentsPzp[key] = JSON.parse(JSON.stringify(jsonObject[key]));
                 }
             });
-            if (Object.keys(contentsPzp).length > 0) diff.push(contentsPzp);
         }
         if (remoteJsonObject) {
             Object.keys(remoteJsonObject).forEach(function(key) {
@@ -55,9 +54,11 @@ var Sync = function () {
                 // Object does not exist, ask remote entity to send updated object
                 if (ownJsonObject[key] !== remoteJsonObject[key] || !ownJsonObject[key]){
                     diff.push(key);
+                    contentsPzp[key] = JSON.parse(JSON.stringify(jsonObject[key]));
                 }
             });
         }
+        if (Object.keys(contentsPzp).length > 0) diff.push(contentsPzp);
         return diff;
     };
 
@@ -77,29 +78,50 @@ var Sync = function () {
         return list;
     };
 
-    function findDiffApply(remoteJson, localJson) {
-        var localDiff = {};
-        for (var key in remoteJson) {
-            if (remoteJson.hasOwnProperty(key) && localJson && localJson.hasOwnProperty(key)){
-                if(typeof remoteJson[key] !== "object" ) {
-                    if(remoteJson[key] !== localJson[key]){
-                        localDiff[key] = remoteJson[key];
-                    } else {
-                        localDiff[key] = localJson[key];
-                    }
-                } else if (typeof remoteJson[key] === "object") {
-                    localDiff[key]=findDiffApply(remoteJson[key], localJson[key]);
-                }
-            } else {
-                localDiff[key] = remoteJson[key];
-            }
-        }
+     function convert(remoteJson){
+         Object.keys()
+         return
+     }
 
-        // Special case when local JSON has more elements than remote JSON
-        if (localJson && typeof localJson === "object" && Object.keys(localJson).length > Object.keys(remoteJson).length) {
-            for (key in localJson) {
-                if (!remoteJson.hasOwnProperty(key)){ // ignore remoteJSON as above part should handle it
-                    localDiff[key] = localJson[key]; // Copy back all items
+    function findDiffApply(remoteJson, localJson) {
+        var localDiff = {}, diff= [];
+        if (Object.prototype.toString.call(remoteJson) === "[object Array]" &&
+            Object.prototype.toString.call(localJson) === "[object Array]") {
+            remoteJson.forEach(function(rname){
+                if (rname && rname.id) {
+                    var found = false;
+                    localJson.forEach(function(lname){
+                       if (rname.id === lname.id) {
+                           localJson.splice();
+                           localJson.push(rname); // Irrespective of object is modified or same, just replace local with remote object
+                           found = true;
+                       }
+                    });
+                    if (!found){ // new element just add the element
+                        localJson.push(rname);
+                    }
+                }
+            });
+            return localJson;
+        } else if (Object.prototype.toString.call(remoteJson) === "[object Object]") {
+            for (var key in remoteJson) {
+                if (remoteJson.hasOwnProperty(key) && localJson && localJson.hasOwnProperty(key)){
+                    if(typeof remoteJson[key] === "string") {
+                        localDiff[key] = (remoteJson[key] !== localJson[key]) ? remoteJson[key]: localJson[key];
+                    } else if (typeof remoteJson[key] === "object") {
+                        localDiff[key]=findDiffApply(remoteJson[key], localJson[key]);
+                    }
+                } else {
+                   localDiff[key] = remoteJson[key];
+                }
+            }
+
+            // Special case when local JSON has more elements than remote JSON
+            if (localJson && typeof localJson === "object") {
+                for (key in localJson) {
+                    if (!remoteJson.hasOwnProperty(key)){ // ignore remoteJSON as above part should handle it
+                        localDiff[key] = localJson[key]; // Copy back all items
+                    }
                 }
             }
         }
