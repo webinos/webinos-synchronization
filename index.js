@@ -43,8 +43,8 @@ var Sync = function () {
             ownJsonObject = SyncObject.getObjectHash(jsonObject);
             // find Object this PZP has that PZH does not have...
             Object.keys(ownJsonObject).forEach(function(key) {
-                if (!remoteJsonObject[key]){ // Object is not present at the PZH
-                    contentsPzp[key] = JSON.parse(JSON.stringify(jsonObject[key]));
+                if (!remoteJsonObject[key] && key){ // Object is not present at the PZH
+                    contentsPzp[key] = jsonObject[key];
                 }
             });
         }
@@ -52,9 +52,9 @@ var Sync = function () {
             Object.keys(remoteJsonObject).forEach(function(key) {
                 // Object exists but hash differs
                 // Object does not exist, ask remote entity to send updated object
-                if (ownJsonObject[key] !== remoteJsonObject[key] || !ownJsonObject[key]){
+                if (key && ownJsonObject[key] !== remoteJsonObject[key] || !ownJsonObject[key]){
                     diff.push(key);
-                    contentsPzp[key] = JSON.parse(JSON.stringify(jsonObject[key]));
+                    contentsPzp[key] = jsonObject[key];
                 }
             });
         }
@@ -78,31 +78,44 @@ var Sync = function () {
         return list;
     };
 
-     function convert(remoteJson){
-         Object.keys()
-         return
+     function contains(localArr, lname) {
+         for (var i = 0 ; i < localArr.length; i = i + 1) {
+            if (localArr[i] == lname) {return true; }
+         }
+         return false;
      }
 
     function findDiffApply(remoteJson, localJson) {
-        var localDiff = {}, diff= [];
+        var localDiff = {}, localArr= [];
         if (Object.prototype.toString.call(remoteJson) === "[object Array]" &&
             Object.prototype.toString.call(localJson) === "[object Array]") {
-            remoteJson.forEach(function(rname){
+            remoteJson.forEach(function(rname, rindex){
                 if (rname && rname.id) {
                     var found = false;
-                    localJson.forEach(function(lname){
-                       if (rname.id === lname.id) {
-                           localJson.splice();
-                           localJson.push(rname); // Irrespective of object is modified or same, just replace local with remote object
+                    localJson.forEach(function(lname, index){
+                       if (rname == lname) {
+                           if(!contains(localArr, rname)) localArr.push(rname); // If
                            found = true;
                        }
+                       if (index+1 === localJson.length && !found) {
+                           if(!contains(localArr, rname)) localArr.push(rname); // If
+                           if(!contains(localArr, lname)) localArr.push(lname);
+                      }
                     });
-                    if (!found){ // new element just add the element
-                        localJson.push(rname);
-                    }
+                }
+                if (rindex+1 === remoteJson.length) {
+                    localJson.forEach(function(lname, lindex){
+                       if(!contains(localArr, lname)) localArr.push(lname);
+                       if(lindex+1 === localJson.length) {console.log("findDiffApply", localArr);return localArr;}
+                    });
                 }
             });
-            return localJson;
+            if (remoteJson.length === 0) {
+                localJson.forEach(function(lname, lindex){
+                    if(!contains(localArr, lname)) localArr.push(lname);
+                    if(lindex+1 === localJson.length) {console.log("findDiffApply", localArr);return localArr;}
+                });
+            }
         } else if (Object.prototype.toString.call(remoteJson) === "[object Object]") {
             for (var key in remoteJson) {
                 if (remoteJson.hasOwnProperty(key) && localJson && localJson.hasOwnProperty(key)){
